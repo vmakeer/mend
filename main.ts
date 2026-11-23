@@ -347,7 +347,12 @@ function parseUnified(lines: string[]): USection[] {
   while (i < lines.length) {
     const l = lines[i];
     if (l.startsWith('diff --git ')) {
-      const m = l.match(/^diff --git a\/(.+) b\/(.+)$/);
+      // SPEC.md section 6 gives the form `diff --git a/<X> b/<Y>`, read left to right: the old path runs from
+      // after `a/` to the FIRST ` b/` separator, so the first group is non-greedy. A greedy match would split at
+      // the last ` b/` and mis-assign part of a new path that itself contains ` b/` (a directory name with a space
+      // before a `b` component) to the old path. These paths are only a fallback: the `---`/`+++` pair and the
+      // rename lines name the paths whenever they are present.
+      const m = l.match(/^diff --git a\/(.+?) b\/(.+)$/);
       if (m === null) throw new Exit2(`error: parse ${i + 1}`);
       cur = { gitOld: m[1], gitNew: m[2], newFile: false, deletedFile: false, hunks: [], sawHunk: false };
       sections.push(cur);
